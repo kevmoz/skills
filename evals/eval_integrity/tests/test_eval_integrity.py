@@ -87,6 +87,14 @@ def test_parse_takes_the_answer_object():
     assert parse("I think it's misleading.") == {}
 
 
+def test_kaggle_task_file_is_current_and_public_only():
+    from evals.eval_integrity.build_kaggle_task import OUT, build
+    assert OUT.read_text(encoding="utf-8").replace("\r\n", "\n") == build().replace("\r\n", "\n"), \
+        "kaggle_task.py is stale: run python -m evals.eval_integrity.build_kaggle_task"
+    text = OUT.read_text(encoding="utf-8")
+    assert all(c["id"] not in text for c in CANARY)
+
+
 def test_scoring_details():
     assert normalise({"verdict": " Misleading ", "flaws": ["Test-Set Selection", "made_up"], "p_misleading": "2"}) == {
         "verdict": "misleading", "flaws": ["test_set_selection"], "evidence": "", "p_misleading": 1.0}
