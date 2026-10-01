@@ -1,0 +1,22 @@
+[project]
+name = "skills"
+version = "0.1.0"
+description = "Eval methodology and LLM evaluation harnesses"
+requires-python = ">=3.11"
+dependencies = ["inspect-ai>=0.3.200", "pyyaml>=6"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"evals/eval_integrity/prompt.py" = ["E501"]   # the instructions are prose, kept on long lines as the model sees them
+
+[tool.pytest.ini_options]
+testpaths = ["evals"]

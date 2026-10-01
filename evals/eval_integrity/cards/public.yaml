@@ -1,0 +1,456 @@
+# Public cards for the eval-integrity benchmark.
+#
+# Each pair is one text with marked passages (<<A>>, <<B>>). The flawed and clean versions differ only in those
+# passages, so a model can't tell them apart by tone or topic, only by reasoning about the setup.
+#
+# evidence:   sentences in the flawed version that give the problem away; a model's quote is matched against them
+# acceptable: other labels that are a fair reading of the flawed version, so they don't count as false labels
+# why:        a note for human readers; models never see it
+#
+# Written before any model was run on them. Decoys sound alarming but describe evaluations that are fine.
+
+pairs:
+
+  - id: X01
+    flaw: contamination
+    acceptable: [preprocessing_leakage]
+    domain: medical imaging
+    voice: lab wiki
+    why: Patients with several films end up on both sides of an image-level split.
+    text: |
+      **Chest X-ray triage model: evaluation**
+
+      Dataset: 41,200 radiographs from 9,800 patients at two hospitals, 2019 to 2023. Many patients have several films (follow-ups, repeat views). <<A>>
+
+      The model reaches 0.94 AUROC on the test set for "urgent finding", against 0.88 for the vendor model we use now. We'd like to start the clinical pilot in March.
+    flawed:
+      A: "Images were shuffled and split 80/10/10 into train, validation and test, so all three sets have the same mix of hospitals and years."
+    clean:
+      A: "We split by patient: all of a patient's films go to one of train, validation or test (80/10/10 by a hash of the patient ID), so no test patient has a film in training."
+    evidence:
+      - "Images were shuffled and split 80/10/10"
+
+  - id: X02
+    flaw: contamination
+    acceptable: []
+    domain: LLM benchmarks
+    voice: draft blog post
+    why: The benchmark and its solutions are in the pretraining crawl, and nothing was done about it. Saying the problems are hard isn't evidence.
+    text: |
+      **Draft: "Our 7B model beats much larger ones on grade-school maths"**
+
+      Our new 7B model scores 84% on a well-known public grade-school maths benchmark, ahead of several 30B+ models. <<A>> We think the gain comes from our curriculum: easier problems early in training, harder ones later.
+    flawed:
+      A: "Pretraining used a 3-trillion-token web crawl collected last year; the benchmark and many copies of its solutions have been online since 2021. We didn't run any decontamination, but the problems are hard enough that memorising them wouldn't help much."
+    clean:
+      A: "Pretraining used a 3-trillion-token web crawl collected last year, so we also wrote 1,200 fresh problems in the same style after the crawl cutoff. The model scores 81% on those, within noise of the public score, which suggests the result isn't memorisation."
+    evidence:
+      - "We didn't run any decontamination"
+
+  - id: X03
+    flaw: contamination
+    acceptable: [unrepresentative_holdout]
+    domain: dermatology AI
+    voice: slack thread
+    why: The pretrained encoder's training archive includes the "external" hospital's public image release, and nobody checked. The probe-layer sweep is a distractor; it was done on a tuning split.
+    text: |
+      maya: external validation is back for the skin-lesion classifier. Quick recap for Jon: we take a public pretrained image encoder and train a small classifier head on our own clinic's images. Nothing in the encoder was trained by us.
+
+      maya: the external test set is 2,300 images from St Bride's, the partner hospital, so it's a different site, different cameras. <<A>>
+
+      maya: melanoma sensitivity at our operating point: 0.91, against 0.78 for the dermatologists' first-pass triage on the same images.
+
+      jon: nice. did you tune which encoder layer to probe?
+
+      maya: yes, on a tuning split from our own clinic, then ran St Bride's once.
+
+      jon: great, let's put it in the grant report
+    flawed:
+      A: "The encoder was pretrained on the big public dermatology archive, and St Bride's contributed a batch of images to that archive a couple of years ago. I haven't cross-checked the two, but it's a different team's model, so it should be independent of our test."
+    clean:
+      A: "The encoder was pretrained on the big public dermatology archive, and St Bride's contributed images to it, so I hashed both sets and dropped every St Bride's test image that appears in the archive (1,140 went). The 2,300 is what's left, plus new images taken since the archive froze."
+    evidence:
+      - "I haven't cross-checked the two"
+
+  - id: X04
+    flaw: unrepresentative_holdout
+    acceptable: [contamination]
+    domain: recommender systems
+    voice: pull request
+    why: A random split over 18 months doesn't resemble predicting next week.
+    text: |
+      ## Two-tower recommender, offline eval
+
+      Training data: 18 months of click logs. <<A>>
+
+      Recall@20: 0.312 (new) against 0.274 (current production model). Offline recall has tracked online CTR well in the past, so we expect a solid lift in production next week.
+    flawed:
+      A: "Evaluation set: a random 5% sample of all interactions across the 18 months, held out from training."
+    clean:
+      A: "Evaluation set: the most recent 2 weeks of interactions, held out from training (the model only sees the 18 months before them), to mimic next week's deployment."
+    evidence:
+      - "a random 5% sample of all interactions across the 18 months"
+
+  - id: X05
+    flaw: unrepresentative_holdout
+    acceptable: []
+    domain: e-commerce
+    voice: notebook entry
+    why: The test set is popular products with rich histories; the target is brand-new listings with almost none.
+    text: |
+      Notes, 14 Oct
+
+      Category classifier, attempt 3. The idea: when a listing's text is thin, borrow signal from similar listings that already have lots of reviews and purchase history. The similarity cut-off is 0.7, fixed before I ran anything (copied from the v2 notes).
+
+      Evaluation: <<A>> Macro-F1 goes from 0.61 to 0.83. That's huge.
+
+      Plan: ship to the new-seller onboarding flow tonight. New sellers' listings are what this is for, and they usually have no reviews at all, but the mechanism is general, so I expect most of the gain to carry over.
+    flawed:
+      A: "the test set is our 5,000 best-selling products, each with hundreds of reviews and a long purchase history."
+    clean:
+      A: "the test set is 5,000 listings created in the last month by new sellers, with fewer than 5 reviews each, so it looks like the onboarding flow. On our best-selling products the same change does even better, which I'm treating as a ceiling, not the estimate."
+    evidence:
+      - "our 5,000 best-selling products, each with hundreds of reviews"
+
+  - id: X06
+    flaw: post_hoc_rule
+    acceptable: [test_set_selection, underpowered]
+    domain: A/B testing
+    voice: email
+    why: The stopping time was chosen by watching for significance, which inflates false positives.
+    text: |
+      Subject: Checkout redesign, results
+
+      Team, quick summary of the checkout test. <<A>> Final numbers: conversion 3.42% (control) against 3.71% (redesign), p = 0.041. Recommending we roll it out to 100%.
+
+      Marcus
+    flawed:
+      A: "We didn't set an end date before launch; I checked the dashboard each morning and stopped the test on day 9, the first day the difference reached p < 0.05."
+    clean:
+      A: "As agreed in the test plan filed before launch, it ran for exactly 28 days to reach the pre-computed sample size, and we looked at the result once, at the end."
+    evidence:
+      - "stopped the test on day 9, the first day the difference reached p < 0.05"
+
+  - id: X07
+    flaw: post_hoc_rule
+    acceptable: []
+    domain: search ranking
+    voice: pull request
+    why: The bar was lowered after the result fell short of it. The clean twin had the lower bar written down before anything ran.
+    text: |
+      ## Ship query-rewrite v2
+
+      **Summary.** Rewrites short, ambiguous queries before retrieval. This PR turns it on for 100% of traffic.
+
+      **Pre-registration.** <<A>>
+
+      **Result** on the held-out query set (n = 4,100, paired bootstrap): change in NDCG@10 = +0.013, 95% CI [+0.004, +0.022].
+
+      <<B>>
+
+      **Tests.** Unit tests for the rewrite rules pass. Reviewer: @mkoh
+    flawed:
+      A: "The plan doc (dated 2 Sep) says a change ships if it improves NDCG@10 by at least 0.02."
+      B: "Since +0.013 is clearly positive and the CI excludes zero, I've updated the plan doc's bar to 0.01, which is in line with what similar launches treat as meaningful. Shipping."
+    clean:
+      A: "The plan doc (dated 2 Sep, before any of this was run) says a change ships if NDCG@10 improves by at least 0.01 and the 95% CI excludes zero."
+      B: "Both conditions hold, so per the plan this ships. No changes to the plan doc."
+    evidence:
+      - "I've updated the plan doc's bar to 0.01"
+
+  - id: X08
+    flaw: test_set_selection
+    acceptable: []
+    domain: NLP
+    voice: methods paragraph
+    why: Choosing the best of 96 configurations on the test set, then reporting that test score.
+    text: |
+      **Hyperparameters.** We fine-tuned a pretrained encoder for sentiment classification on 25,000 labelled reviews. <<A>> The final model reaches 95.1% accuracy on the test set, a new state of the art for this dataset by 0.4 points.
+    flawed:
+      A: "We searched learning rate, batch size, warm-up and dropout (96 configurations) and selected the configuration with the highest test-set accuracy."
+    clean:
+      A: "We searched learning rate, batch size, warm-up and dropout (96 configurations) on a 5,000-review development split carved from the training data; the test set was evaluated once, for the selected configuration."
+    evidence:
+      - "selected the configuration with the highest test-set accuracy"
+
+  - id: X09
+    flaw: test_set_selection
+    acceptable: []
+    domain: medical image segmentation
+    voice: methods paragraph
+    why: The test set chose the checkpoint and then reported the result, so the score is the maximum over many checkpoints.
+    text: |
+      **Training.** We trained a U-Net to segment liver tumours on CT, with a combined Dice and cross-entropy loss, for up to 300 epochs with a cosine learning-rate schedule. <<A>> On the 180-scan test set the final model reaches a mean Dice of 0.81, against 0.77 for our previous model, a gain of 0.04.
+    flawed:
+      A: "To avoid overfitting, we evaluated on the test set after every epoch, using the same Dice code as the final report, and kept the checkpoint with the best test Dice."
+    clean:
+      A: "To avoid overfitting, we stopped when Dice on a validation set (40 scans from the training hospitals, none of them test scans) had failed to improve for 20 epochs. The test set was not looked at until the final checkpoint was fixed."
+    evidence:
+      - "kept the checkpoint with the best test Dice"
+
+  - id: X10
+    flaw: test_set_selection
+    acceptable: [post_hoc_rule]
+    domain: churn prediction
+    voice: team update
+    why: The fifth variant is scored against the same holdout at an unchanged bar, so the pass is a multiple-comparisons artefact.
+    text: |
+      **Churn model, weekly update.** <<A>> Result: +0.012 AUC, above the +0.01 bar, so it goes into next month's retention campaign. Thanks to everyone who suggested features last week, especially the support-ticket sentiment idea.
+    flawed:
+      A: "Variants A through D each failed on our holdout of 20,000 customers, so we kept iterating. E is the fifth design scored against the same 20,000, and the bar is the same +0.01 we set for the first one."
+    clean:
+      A: "Variants A through D each failed on our holdout of 20,000 customers, so before building E we drew a fresh holdout of 30,000 customers that nothing had been scored on. E's +0.012 is measured on that fresh set, once, against the +0.01 bar written down before E existed."
+    evidence:
+      - "E is the fifth design scored against the same 20,000"
+
+  - id: X11
+    flaw: preprocessing_leakage
+    acceptable: [contamination]
+    domain: demand forecasting
+    voice: slack thread
+    why: A centred window uses the three days after the forecast date.
+    text: |
+      dmitri: demand forecaster v3 results. Features: day-of-week, holidays, price, and a smoothed sales signal. <<A>> Backtest on 2025 (trained on 2021 to 2024, never touched 2025 during development): MAPE 6.1% against 11.8% for the production model.
+
+      lena: that's a big drop
+
+      dmitri: yeah, the smoothed signal is doing most of the work, feature importance is like 70% on it
+    flawed:
+      A: "The smoothed signal is a 7-day centred rolling mean of sales (3 days either side), computed once over the whole series before splitting."
+    clean:
+      A: "The smoothed signal is a 7-day trailing rolling mean of sales (the 7 days before the forecast date), computed over the whole series but only ever looking backwards, so it uses nothing that wasn't available at forecast time."
+    evidence:
+      - "7-day centred rolling mean"
+
+  - id: X12
+    flaw: preprocessing_leakage
+    acceptable: []
+    domain: genomics
+    voice: methods paragraph
+    why: Gene selection saw every tumour's label before cross-validation.
+    text: |
+      **Methods.** From 20,000 genes measured on 88 tumours, we selected the 100 genes most differentially expressed between responders and non-responders (t-test). <<A>> A logistic regression on those 100 genes achieved a leave-one-out cross-validated accuracy of 89%.
+    flawed:
+      A: "Gene selection was done once, on all 88 tumours, before cross-validation."
+    clean:
+      A: "Gene selection was repeated inside every leave-one-out fold, using only that fold's 87 training tumours."
+    evidence:
+      - "Gene selection was done once, on all 88 tumours"
+
+  - id: X13
+    flaw: baseline_mismatch
+    acceptable: [provenance_gap]
+    domain: document OCR
+    voice: standup notes
+    why: The baseline number was copied from an older report that used a different test set.
+    text: |
+      Standup, Tue
+
+      - Ana: the new OCR model is done. On the 2,000-page invoice test set it gets a character error rate of 2.1%. <<A>> She proposes we swap it in.
+      - Ben: GPU quota resets Wednesday, so we can run two training jobs then.
+      - Chloe: still fighting the PDF renderer. Might need a second pair of eyes.
+    flawed:
+      A: "The old model's 3.4% is from the results table in last quarter's report; since then the test set has changed from typed invoices only to typed plus handwritten ones, and Ana's run uses the new set. Both use the same character-error scoring."
+    clean:
+      A: "The old model gets 3.4% in the same script and the same run: same 2,000 pages, same scoring, same seed. (Last quarter's report had it at 2.9%, but that was on the older typed-only test set, so we don't compare against it.)"
+    evidence:
+      - "from the results table in last quarter's report"
+
+  - id: X14
+    flaw: underpowered
+    acceptable: []
+    domain: LLM prompting
+    voice: email
+    why: 30 questions can't support a 6-point claim; the standard error is around 9 points. The clean twin reads the same numbers as a hint.
+    text: |
+      Hi Dr Okafor,
+
+      Quick update on the new prompting strategy. I ran it on the subset of our QA set that needs multi-step reasoning, because that's the part that looks most like what users actually ask. There are 30 such questions. Accuracy on them goes from 57% with the old prompt to 63% with the new one. <<A>>
+
+      Happy to go through it on Thursday.
+
+      Best,
+      Sam
+    flawed:
+      A: "So the new prompt clearly helps on multi-step reasoning, and I'd like to make that the headline of our results section."
+    clean:
+      A: "With only 30 questions the standard error on each of those numbers is around 9 points, so I don't think this tells us anything yet either way. I'd treat it as a hint and test it properly on the 600-question set once it's labelled."
+    evidence:
+      - "the new prompt clearly helps on multi-step reasoning"
+      - "There are 30 such questions"
+
+  - id: X15
+    flaw: aggregate_masking
+    acceptable: [metric_mismatch]
+    domain: multilingual assistant
+    voice: forum post
+    why: The average weights ten languages equally, but most users are English speakers, and English got worse.
+    text: |
+      **Our new assistant model helps a lot, sharing the numbers**
+
+      We evaluate on ten languages, with 500 prompts each, graded for helpfulness on a 0 to 1 scale. About 85% of our users write in English; the other nine languages share the remaining 15%.
+
+      New model against old: English 0.82 to 0.77; the other nine languages each improve by between 0.06 and 0.11. <<A>>
+
+      Happy to answer questions!
+    flawed:
+      A: "Averaging all ten languages equally, the new model is up 0.068 overall, which is why we're switching every user to it."
+    clean:
+      A: "Averaging all ten languages equally it looks like +0.068, but weighted by where our users actually are it's a net change of about -0.030, so for most users it's worse. We're switching it on only for the nine non-English languages."
+    evidence:
+      - "the new model is up 0.068 overall, which is why we're switching every user to it"
+
+  - id: X16
+    flaw: metric_mismatch
+    acceptable: [aggregate_masking]
+    domain: fraud detection
+    voice: slide speaker notes
+    why: At 1 in 200 positives, accuracy barely moves whatever the model does; the job is defined by an alert budget.
+    text: |
+      **Slide 4, speaker notes.** New fraud classifier. Fraud is about 1 in 200 transactions. <<A>> Ops can review roughly 500 alerts a day out of 400,000 transactions, so whatever we ship has to be good in the top few hundred.
+    flawed:
+      A: "Headline: 99.6% accuracy on last quarter's held-out transactions, up from 99.5% with the rules engine on the same transactions, so it's better on both counts and ready to ship."
+    clean:
+      A: "Headline: at 500 alerts a day the classifier catches 41% of fraud on last quarter's held-out transactions, against 23% for the rules engine at the same alert volume (precision 33% against 18%). Plain accuracy, 99.6% against 99.5%, can't tell the two apart at this base rate, so we don't use it."
+    evidence:
+      - "99.6% accuracy"
+
+  - id: X17
+    flaw: provenance_gap
+    acceptable: [baseline_mismatch]
+    domain: credit scoring
+    voice: chat with a manager
+    why: The headline number can't be traced to any run, code version or data snapshot, and nobody can reproduce it.
+    text: |
+      priya (manager): the board deck says the new credit model has a Gini of 0.71. Where's that from? Risk want to check it before Thursday.
+
+      tom: <<A>>
+
+      priya: ok. And the current model?
+
+      tom: 0.64, that one's from the quarterly validation report.
+    flawed:
+      A: "It's from a notebook I ran in August. I've rerun cells in it a few times since and the data snapshot it pointed at has been refreshed, so I can't get the exact number back, but it was 0.71 when I copied it into the deck, the same as the dashboard showed that day."
+    clean:
+      A: "It's run 4417 in the experiment tracker: commit 9c2e1f0, data snapshot 2026-08-01, seed 7. I reran it this morning from those and got 0.71 again; the link's in the deck notes."
+    evidence:
+      - "I can't get the exact number back"
+
+  - id: X18
+    flaw: pool_ceiling
+    acceptable: [confounded_attribution]
+    domain: question answering
+    voice: design doc
+    why: The retriever's candidates contain the answer for only 46% of questions, so no reranker can do much better. The conclusion blames the reranker.
+    text: |
+      **QA pipeline: where to invest next quarter**
+
+      The pipeline retrieves the top 50 passages for each question, a reranker orders them, and the reader answers from the top 3. On our 2,000-question benchmark, end-to-end accuracy is 41%, up from 38% after last quarter's reranker upgrade.
+
+      <<A>>
+    flawed:
+      A: "We checked how often the correct passage appears anywhere in the top 50: 46% of questions. Since the last reranker upgrade gave us 3 points, we propose doubling the reranker's size next quarter, as the reranker is clearly the bottleneck."
+    clean:
+      A: "We checked how often the correct passage appears anywhere in the top 50: 97% of questions. So the retriever isn't what's holding us back. The reranker and reader clearly are, and we propose doubling the reranker's size next quarter."
+    evidence:
+      - "46% of questions"
+
+  - id: X19
+    flaw: confounded_attribution
+    acceptable: []
+    domain: tabular ML
+    voice: release notes
+    why: Two changes shipped together, and all the credit goes to one of them with no ablation.
+    text: |
+      **Lead-scoring model v4, release notes.** <<A>>
+    flawed:
+      A: "This release adds the new web-activity features. In the same retrain we also moved from 3 months to 12 months of training history. AUC goes from 0.74 to 0.80, which shows how valuable the web-activity features are; we'll invest in more of them."
+    clean:
+      A: "This release adds the new web-activity features and moves from 3 to 12 months of training history. AUC goes from 0.74 to 0.80. Ablation, all in the same run: history alone 0.75, features alone 0.79, both 0.80. So the features clearly carry most of it, and we'll invest in more of them."
+    evidence:
+      - "which shows how valuable the web-activity features are"
+
+  - id: X20
+    flaw: unrepresentative_holdout
+    acceptable: [contamination]
+    domain: drug discovery
+    voice: poster abstract
+    why: A random split of compounds from the same chemical series says nothing about entirely new series.
+    text: |
+      **Abstract.** Our graph neural network predicts kinase inhibition from chemical structure with 0.91 ROC-AUC on held-out compounds. <<A>> These results suggest the model can guide medicinal chemists toward entirely new chemical series.
+    flawed:
+      A: "Compounds were split randomly into training (80%) and test (20%); many test compounds are close analogues of training compounds from the same medicinal-chemistry series."
+    clean:
+      A: "Compounds were split by Bemis-Murcko scaffold, so every test compound belongs to a chemical series with no member in training."
+    evidence:
+      - "Compounds were split randomly"
+
+decoys:
+
+  - id: Y01
+    domain: fraud detection
+    voice: experiment log
+    cue: reused holdout
+    why: The holdout was reused, but the bar was raised and a fresh, never-scored holdout confirms the result.
+    text: |
+      Experiment log, variant E.
+
+      This is the fifth fraud-model variant we've tried against the same 50,000-transaction holdout. Because that holdout has now shaped four earlier decisions, we no longer treat a pass on it as enough. The plan, written before variant E was built, requires at least +0.02 recall at our alert budget there, and then a confirmation of at least +0.01 on a fresh 80,000-transaction holdout that has never been scored by anything. Variant E: +0.031 on the old holdout, +0.018 on the fresh one (95% CI +0.006 to +0.030). It ships.
+
+  - id: Y02
+    domain: dermatology AI
+    voice: methods note
+    cue: pretrained on public data
+    why: Overlap was checked, and the test images were never in any public archive.
+    text: |
+      **Methods note.** We use an image encoder that another group pretrained on a public dermatology archive. Because our test images could overlap with that archive, we downloaded its image list and checked every test image against it by perceptual hash: none match. The test images were taken at our clinic this year and have never been released anywhere. Adding the encoder improves melanoma sensitivity at our operating point from 0.80 to 0.87 on these 1,900 images (paired bootstrap 95% CI for the difference: +0.03 to +0.11).
+
+  - id: Y03
+    domain: medical image segmentation
+    voice: training notes
+    cue: early stopping
+    why: Early stopping used a validation set fixed before training; the test set was touched once.
+    text: |
+      Training details. Early stopping matters a lot for this model: without it, validation Dice drops by about 0.05 after epoch 120. We stop when validation Dice hasn't improved for 20 epochs. The validation set is 40 scans from the training hospitals, chosen by a fixed hash before training began, and none of them are test scans. The test set was evaluated once, on the final checkpoint: Dice 0.81 against 0.77 for the previous model, both scored in the same run.
+
+  - id: Y04
+    domain: LLM prompting
+    voice: error analysis note
+    cue: tiny sample
+    why: The 12 cases are used for error analysis, not as a claim; the decision rests on a 600-question set.
+    text: |
+      Error analysis, not a result. I read through 12 questions the new prompt gets wrong. In 9 of them the model drops a unit conversion halfway through. I'm not drawing any performance conclusion from 12 questions; the point is to suggest what the next prompt should handle. Whether to ship the prompt was decided separately, on the 600-question set (+4.1 points, 95% CI +1.8 to +6.4), against a bar written down before the run.
+
+  - id: Y05
+    domain: search ranking
+    voice: changelog
+    cue: threshold changed after looking at results
+    why: The threshold was changed after looking at the development set, then frozen, and only then was the test run, once.
+    text: |
+      **Changelog, v0.9 to v1.0.** We changed the rewrite-confidence threshold from 0.8 to 0.9. Yes, the change was made after looking at results, but on the development queries, not the test. Timeline: on 3 Sep we picked 0.9 on dev, wrote it into the frozen config (hash a41f), and only then ran the test set, once. Test NDCG@10: 0.418 against 0.397 for v0.9, which used the same test set and the same code apart from the threshold.
+
+  - id: Y06
+    domain: medical imaging
+    voice: dataset section
+    cue: random image-level split
+    why: Every patient has exactly one image, so an image-level split is a patient-level split.
+    text: |
+      **Data.** We split the 12,000 images at random, 80/10/10, into train, validation and test. Each image comes from a different patient: the dataset was built from first-visit scans only, one per person, and the curators de-duplicated by patient ID before release. The model reaches 0.89 AUROC on the test set against 0.84 for the previous model, both scored by the same script on the same test images.
+
+  - id: Y07
+    domain: credit scoring
+    voice: chat with a manager
+    cue: notebook was rerun
+    why: The notebook was rerun, but the number is pinned to a tracked run and reproduces from it.
+    text: |
+      priya (manager): the deck says Gini 0.71. Tom mentioned the notebook got rerun and the data refreshed. Is the number still good?
+
+      tom: yes. The notebook's been rerun since, but the 0.71 isn't from the notebook's current state. It's run 4417 in the tracker, which pins commit, data snapshot and seed. I reproduced it from those this morning, and the current model's 0.64 came from the same pipeline, on the same snapshot.
+
+  - id: Y08
+    domain: tabular ML
+    voice: release notes
+    cue: two changes at once
+    why: Two changes shipped together, but a full ablation separates their effects.
+    text: |
+      **Churn model v6, release notes.** Two changes went in together: a new set of billing features, and a switch from logistic regression to gradient boosting. To see which one earned the gain we ran all four combinations on the same holdout, same seed: neither 0.71, features only 0.72, boosting only 0.77, both 0.78. Most of the gain is clearly the model change, so next quarter's budget goes there, not into more billing features.
