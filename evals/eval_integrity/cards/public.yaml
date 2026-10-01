@@ -7,7 +7,11 @@
 # acceptable: other labels that are a fair reading of the flawed version, so they don't count as false labels
 # why:        a note for human readers; models never see it
 #
-# Written before any model was run on them. Decoys sound alarming but describe evaluations that are fine.
+# Version 1.0 was written before any model was run on it. Version 1.1 corrects five clean twins whose shared text
+# contained a real flaw, and accepts a second label on X04; see CHANGELOG.md. Decoys sound alarming but describe
+# evaluations that are fine.
+#
+# flaw: one label, or a list of labels any one of which counts as naming the flaw.
 
 pairs:
 
@@ -39,11 +43,11 @@ pairs:
     text: |
       **Draft: "Our 7B model beats much larger ones on grade-school maths"**
 
-      Our new 7B model scores 84% on a well-known public grade-school maths benchmark, ahead of several 30B+ models. <<A>> We think the gain comes from our curriculum: easier problems early in training, harder ones later.
+      Our new 7B model scores 84% on a well-known public grade-school maths benchmark, ahead of several 30B+ models. <<A>> We'll release the weights next month.
     flawed:
       A: "Pretraining used a 3-trillion-token web crawl collected last year; the benchmark and many copies of its solutions have been online since 2021. We didn't run any decontamination, but the problems are hard enough that memorising them wouldn't help much."
     clean:
-      A: "Pretraining used a 3-trillion-token web crawl collected last year, so we also wrote 1,200 fresh problems in the same style after the crawl cutoff. The model scores 81% on those, within noise of the public score, which suggests the result isn't memorisation."
+      A: "Pretraining used a 3-trillion-token web crawl collected last year, so we also wrote 1,200 fresh problems in the same style after the crawl cutoff. The model scores 83% on those, within noise of the public score (the standard error on 1,200 problems is about one point), which suggests the result isn't memorisation."
     evidence:
       - "We didn't run any decontamination"
 
@@ -68,12 +72,12 @@ pairs:
     flawed:
       A: "The encoder was pretrained on the big public dermatology archive, and St Bride's contributed a batch of images to that archive a couple of years ago. I haven't cross-checked the two, but it's a different team's model, so it should be independent of our test."
     clean:
-      A: "The encoder was pretrained on the big public dermatology archive, and St Bride's contributed images to it, so I hashed both sets and dropped every St Bride's test image that appears in the archive (1,140 went). The 2,300 is what's left, plus new images taken since the archive froze."
+      A: "The encoder was pretrained on the big public dermatology archive, and St Bride's contributed images to it, so I matched both sets by patient ID and by perceptual hash, and dropped every St Bride's patient with any image in the archive (1,140 images went). The 2,300 is what's left, plus new patients seen since the archive froze."
     evidence:
       - "I haven't cross-checked the two"
 
   - id: X04
-    flaw: unrepresentative_holdout
+    flaw: [unrepresentative_holdout, preprocessing_leakage]
     acceptable: [contamination]
     domain: recommender systems
     voice: pull request
@@ -104,7 +108,7 @@ pairs:
 
       Evaluation: <<A>> Macro-F1 goes from 0.61 to 0.83. That's huge.
 
-      Plan: ship to the new-seller onboarding flow tonight. New sellers' listings are what this is for, and they usually have no reviews at all, but the mechanism is general, so I expect most of the gain to carry over.
+      Plan: ship to the new-seller onboarding flow tonight. New sellers' listings are what this is for, and they usually have only a handful of reviews, but the mechanism is general, so I expect most of the gain to carry over.
     flawed:
       A: "the test set is our 5,000 best-selling products, each with hundreds of reviews and a long purchase history."
     clean:
@@ -328,7 +332,7 @@ pairs:
 
       priya: ok. And the current model?
 
-      tom: 0.64, that one's from the quarterly validation report.
+      tom: 0.64. That's run 4398 in the tracker, from the same pipeline and the same data snapshot.
     flawed:
       A: "It's from a notebook I ran in August. I've rerun cells in it a few times since and the data snapshot it pointed at has been refreshed, so I can't get the exact number back, but it was 0.71 when I copied it into the deck, the same as the dashboard showed that day."
     clean:
@@ -351,7 +355,7 @@ pairs:
     flawed:
       A: "We checked how often the correct passage appears anywhere in the top 50: 46% of questions. Since the last reranker upgrade gave us 3 points, we propose doubling the reranker's size next quarter, as the reranker is clearly the bottleneck."
     clean:
-      A: "We checked how often the correct passage appears anywhere in the top 50: 97% of questions. So the retriever isn't what's holding us back. The reranker and reader clearly are, and we propose doubling the reranker's size next quarter."
+      A: "We checked how often the correct passage appears anywhere in the top 50: 97% of questions. So the retriever isn't what's holding us back. Reading 200 failures by hand, the right passage was ranked below 3rd in 71% of them, so the reranker is clearly where most of the loss is, and we propose doubling its size next quarter."
     evidence:
       - "46% of questions"
 

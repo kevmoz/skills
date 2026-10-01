@@ -42,7 +42,7 @@ def score_case(case: dict, answer: dict) -> dict:
            "brier": (a["p_misleading"] - float(case["verdict"] == "misleading")) ** 2}
     if case["role"] == "flawed":
         allowed = set(case["flaws"]) | set(case["acceptable"])
-        found = set(case["flaws"]) <= set(a["flaws"])
+        found = bool(set(case["flaws"]) & set(a["flaws"]))        # naming any accepted primary label counts
         row.update(correct=flagged and found, flaw_found=found, false_labels=len(set(a["flaws"]) - allowed),
                    evidence_hit=flagged and evidence_hit(a["evidence"], case["evidence"]))
     else:

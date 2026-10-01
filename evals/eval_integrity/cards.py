@@ -20,7 +20,8 @@ def expand(spec: dict, split: str) -> list[dict]:
     cases = []
     for p in spec.get("pairs", []):
         common = {"pair": p["id"], "split": split, "domain": p["domain"], "voice": p["voice"], "why": p["why"]}
-        cases.append({"id": f"{p['id']}-F", "role": "flawed", "verdict": "misleading", "flaws": [p["flaw"]],
+        flaws = list(p["flaw"]) if isinstance(p["flaw"], list) else [p["flaw"]]   # any one of these names it
+        cases.append({"id": f"{p['id']}-F", "role": "flawed", "verdict": "misleading", "flaws": flaws,
                       "acceptable": list(p.get("acceptable", [])), "evidence": list(p["evidence"]),
                       "text": _fill(p["text"], p["flawed"]), **common})
         cases.append({"id": f"{p['id']}-C", "role": "clean", "verdict": "trustworthy", "flaws": [],

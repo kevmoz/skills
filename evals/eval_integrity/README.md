@@ -4,7 +4,7 @@ An eval of whether a language model can tell when an evaluation is misleading.
 
 Each test case is a short card written the way people actually report results: a Slack thread, a pull request, a methods paragraph, an email to a supervisor. The model reads one card and says whether the evaluation it describes supports the author's conclusion. If it doesn't, the model names the problem and quotes the sentence that gives it away.
 
-**Status:** the cards and scoring are done and tested; no model has been run on them yet. The card file's SHA-256 at the time of writing, before any model output existed, is `5e11e0730b48c0b4f7086f2a40dc8dfafc7a39db456e911c7a14f60d24412922`. Every result records the hash of the cards it was scored on.
+**Status:** run on 13 models through Kaggle Community Benchmarks; results are in [`results/eval_integrity.md`](../../results/eval_integrity.md). Card version 1.0 (`5e11e073…`) was written and committed before any model saw it. The first runs showed that five of my "clean" cards weren't clean (the models were right), so version 1.1 (`66efdb7e…`) corrects them, in the open: see [`CHANGELOG.md`](CHANGELOG.md). Every result records the hash of the cards it was scored on.
 
 ## Why I built it
 
@@ -73,7 +73,7 @@ Before running any model, I checked that the eval can't be passed without unders
 | Always "misleading" | 0.00 | flags every decoy |
 | Always "trustworthy" | 0.00 | still gets 58% of individual cards right, which is why single-card accuracy isn't the headline |
 | Keyword spotting | 0.00 | catches 85% of flawed cards, and also flags every decoy |
-| Word-count classifier, leave one pair out | 0.05 | learns whatever surface cues the cards contain |
+| Word-count classifier, leave one pair out | 0.05 | learns whatever surface cues the cards contain (0.25 when the private canary cards are added to its training data, right at the test's limit) |
 
 These are tests in `tests/`, so they keep holding as cards are added.
 
@@ -99,5 +99,6 @@ Cards are scored one at a time, at temperature 0, each in a fresh conversation.
 - 20 pairs is small. One pair is worth 0.05 of pair accuracy, so differences between models under about 0.15 shouldn't be read as real.
 - Every card was written by one person, so they share one author's idea of what a misleading evaluation looks like. The word-count check catches some of that, not all.
 - Some failure modes overlap (a reused holdout is both `test_set_selection` and arguably `post_hoc_rule`). Cards list acceptable secondary labels, so a fair alternative reading isn't punished, but the boundaries are a judgement call.
+- The answer key can be wrong. Version 1.0 had five clean twins with a real flaw in their shared text, which the models found. Cards are now checked for that before release, but one author will miss things.
 - The cards are short. Real write-ups bury the important sentence in pages of detail, which is harder.
 - Cards drawn from the competition work itself are held back until the competition ends; these public cards move the same failure modes into other fields.
