@@ -29,12 +29,15 @@ import pandas as pd
 
 CARDS_SHA256 = "{sha}"
 CASES = json.loads({cases!r})
+# Kaggle reserves quota against the maximum possible output. The answer is a short JSON object; 8,000 tokens leaves
+# room for a reasoning model's thinking while keeping the reservation small enough for large models to run.
+MAX_OUTPUT_TOKENS = 8000
 
 
 @kbench.task(name="eval-integrity-card", store_task=False)
 def audit_card(llm, case_json: str) -> dict:
     case = json.loads(case_json)
-    reply = llm.prompt(build(case["text"]))
+    reply = llm.prompt(build(case["text"]), extra_api_params={{"max_tokens": MAX_OUTPUT_TOKENS}})
     return score_case(case, parse(str(reply)))
 
 
@@ -56,7 +59,7 @@ def _pair_interval(rows: list[dict], draws: int = 2000) -> float:
 def eval_integrity(llm) -> tuple[float, float]:
     data = pd.DataFrame({{"case_json": [json.dumps(c) for c in CASES]}})
     with kbench.client.enable_cache():
-        runs = audit_card.evaluate(llm=[llm], evaluation_data=data, n_jobs=4, timeout=600, max_attempts=3,
+        runs = audit_card.evaluate(llm=[llm], evaluation_data=data, n_jobs=2, timeout=600, max_attempts=3,
                                    retry_delay=20, on_failure="continue")
     completed = runs.completed_runs
     rows = list(completed.as_dataframe().result) if len(completed) else []
