@@ -32,6 +32,40 @@ Not scored: DeepSeek-R1 and gpt-oss-120b (Kaggle returned "model under heavy loa
 
 **Small numbers.** With 20 pairs, one pair moves pair accuracy by 0.05, and most intervals above overlap. The table supports broad groupings (a top group, a middle group, a model that flags everything), not a fine ranking.
 
-## Cards 1.1 (`66efdb7e…`)
+## Cards 1.1 (`66efdb7e…`), 1 October 2026
 
-Runs in progress. All models are re-run on 1.1, and both versions are kept.
+Kaggle task version 3, except GLM-5 (version 4, see below).
+
+| Model | Pair accuracy | 95% interval | Flawed cards caught | False alarms, clean twins | False alarms, decoys | Brier |
+|---|---|---|---|---|---|---|
+| Gemini 3.1 Pro | 1.00 | 1.00–1.00 | 1.00 | 0.00 | 0.00 | 0.001 |
+| Gemini 3.8 Flash | 1.00 | 1.00–1.00 | 1.00 | 0.00 | 0.00 | 0.004 |
+| GPT-6 Astra | 1.00 | 1.00–1.00 | 1.00 | 0.00 | 0.00 | 0.004 |
+| GPT-5.5 | 1.00 | 1.00–1.00 | 1.00 | 0.00 | 0.00 | 0.011 |
+| Gemini 3.7 Flash | 0.95 | 0.85–1.00 | 1.00 | 0.00 | 0.00 | 0.003 |
+| Gemma 4 31B | 0.95 | 0.85–1.00 | 0.95 | 0.00 | 0.00 | 0.022 |
+| Claude Opus 5 | 0.90 | 0.75–1.00 | 0.95 | 0.05 | 0.00 | 0.041 |
+| GLM-5 | 0.75 | 0.55–0.95 | 1.00 | 0.15 | 0.00 | 0.055 |
+| Claude Sonnet 5 | 0.70 | 0.50–0.85 | 1.00 | 0.30 | 0.00 | 0.067 |
+| Claude Haiku 4.5 | 0.45 | 0.25–0.65 | 1.00 | 0.50 | 0.12 | 0.139 |
+| GPT-5.4 nano | 0.15 | 0.00–0.30 | 1.00 | 0.80 | 0.75 | 0.234 |
+
+Not scored: DeepSeek-R1 and gpt-oss-120b (Kaggle returned "model under heavy load" for most cards on three separate attempts) and Grok 4.6 (listed but not served).
+
+## What 1.1 showed, and what it can't show
+
+**The top is saturated.** Four models get every pair right. This card set separates weak auditors from strong ones, but not strong ones from each other. A harder version needs longer write-ups, where the telling sentence sits among pages of ordinary detail, and flaws that only show up when two separate sentences are read together.
+
+**False alarms still decide everything below the top.** Every model catches nearly every flaw. Claude Sonnet 5 flags 30% of clean evaluations and Claude Haiku 4.5 flags half of them; GPT-5.4 nano flags almost everything, decoys included.
+
+**These scores lean optimistic.** The 1.1 corrections were prompted by these same models' answers, so models that agreed with my fixes are rewarded twice. The private canary cards were corrected only by my own review and have never been shown to any model, so they're the clean check. They haven't been run yet, because sending them to hosted models exposes them to the model providers.
+
+**Run-to-run noise exists even at temperature 0.** Gemini 3.7 Flash ran twice on identical cards (task versions 3 and 4) and scored 0.95 and then 1.00. One pair can flip between runs, so single-pair differences mean nothing.
+
+## Harness notes
+
+Three problems were in the harness, not the models, and each changed the published task:
+
+- **Quota.** Kaggle reserves quota against a call's maximum possible output. With no cap, large models were refused before answering. Fixed with an output cap.
+- **The cap was too low for one model.** At 8,000 tokens, GLM-5 spent the whole budget thinking on 9 clean cards and never answered, which first scored it 0.55. At 32,000 it scores 0.75. No other model used more than about 5,000 tokens, so the change affects no other result. GLM-5 thinking longest on the cards where nothing is wrong is interesting in its own right.
+- **Rate limits.** The two models above that hit them are reported as not scored, rather than scored as wrong.
