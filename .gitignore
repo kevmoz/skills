@@ -1,0 +1,20 @@
+# secrets
+.env
+*.key
+kaggle.json
+# tools and caches
+.cline/
+.cache/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+# data and weights: large, and may contain material that must not be public
+data/
+*.parquet
+*.ckpt
+*.pt
+*.safetensors
+# eval logs and raw transcripts: only small summaries in results/ are committed
+logs/
+*.eval
