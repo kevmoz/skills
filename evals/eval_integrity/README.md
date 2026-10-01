@@ -85,6 +85,10 @@ Building them taught me three things about my own cards:
 
 ## Running it
 
+The task is public on Kaggle Community Benchmarks, which runs it against hosted models: [https://www.kaggle.com/benchmarks/tasks/truthseeking/is-this-eval-lying](https://www.kaggle.com/benchmarks/tasks/truthseeking/is-this-eval-lying). It's generated from this repo by `build_kaggle_task.py`, with the public cards only.
+
+Locally, with Inspect:
+
 ```bash
 pip install -e ".[dev]"
 pytest
