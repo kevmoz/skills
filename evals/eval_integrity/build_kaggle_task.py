@@ -29,9 +29,10 @@ import pandas as pd
 
 CARDS_SHA256 = "{sha}"
 CASES = json.loads({cases!r})
-# Kaggle reserves quota against the maximum possible output. The answer is a short JSON object; 8,000 tokens leaves
-# room for a reasoning model's thinking while keeping the reservation small enough for large models to run.
-MAX_OUTPUT_TOKENS = 8000
+# Kaggle reserves quota against the maximum possible output, so an uncapped call can be refused before it starts.
+# The answer is a short JSON object. 8,000 tokens was too tight for GLM-5, which spent it all thinking on 9 clean
+# cards and never answered; no other model used more than about 5,000. 32,000 leaves room for long reasoning.
+MAX_OUTPUT_TOKENS = 32000
 
 
 @kbench.task(name="eval-integrity-card", store_task=False)
