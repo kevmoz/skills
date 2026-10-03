@@ -1,6 +1,6 @@
 # Skills
 
-What I've actually used, and where. My project repositories are private for now (one is a live Kaggle competition, one a commercial service), so the "where" column names the project, and I'm happy to walk through any of them.
+What I've actually used, and where. My project repositories are private for now (one is a live Kaggle competition, two are commercial products), so the "where" column names the project, and I'm happy to walk through any of them.
 
 How to read the levels:
 
@@ -12,6 +12,7 @@ Projects referred to below:
 
 - **CASMI 2026**: Kaggle competition, identifying molecules from tandem mass spectra
 - **macaroonnetwork**: a live marketplace where AI agents pay for data, with payment settling only if the result passes a check
+- **Compliphy**: a live B2B compliance SaaS product, built and run on my own
 - **Polymathica**: computational physics lab: PDE and CFD solvers and experiments
 - **Graphics Core**: Polymathica's scientific visualisation and evidence subsystem
 - **PSIC**: a scientific reasoning and memory core
@@ -97,10 +98,19 @@ Projects referred to below:
 | FastAPI, REST APIs, Pydantic | Used | macaroonnetwork, Polymathica, PSIC |
 | Docker Compose, Caddy, VPS deployment, SSH | Used | macaroonnetwork (production), CASMI (deploy remote) |
 | Celery, Redis | Used | macaroonnetwork |
-| GitHub Actions / CI | Familiar | |
+| GitHub Actions / CI | Used | CASMI (test workflow, Kaggle push), macaroonnetwork (CI, PyPI publish workflow) |
 | Payments engineering (Lightning L402, x402 USDC, idempotency, integer money) | Used | macaroonnetwork: live on mainnet |
 | Windows / PowerShell, Linux, WSL | Heavy use | all projects |
 | Python packaging | Used | macaroonnetwork (PyPI release) |
+
+## SaaS and cloud
+
+| Skill | Level | Where |
+|---|---|---|
+| Supabase (authentication, backend data) | Used | Compliphy |
+| Stripe subscription billing | Used | Compliphy |
+| Vercel / cloud deployment, custom domains, HTTPS | Used | Compliphy |
+| LLM features in a live product | Used | Compliphy (OpenAI and Claude tooling) |
 
 ## Visualisation and web
 
